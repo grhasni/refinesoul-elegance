@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag, Search, Sun, Moon, User } from 'lucide-react';
+import { Menu, X, ShoppingBag, Search, Sun, Moon, User, LogOut } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
@@ -16,9 +17,11 @@ const navLinks = [
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
   const { getTotalItems, toggleCart } = useCartStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { user, isAdmin, signOut } = useAuth();
   const totalItems = getTotalItems();
 
   useEffect(() => {
@@ -31,7 +34,13 @@ export function Header() {
 
   useEffect(() => {
     setIsMenuOpen(false);
+    setShowUserMenu(false);
   }, [location]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setShowUserMenu(false);
+  };
 
   return (
     <>
@@ -116,13 +125,71 @@ export function Header() {
                 <Search size={20} />
               </Link>
 
-              <Link
-                to="/admin"
-                className="hidden sm:block p-2 text-foreground hover:text-primary transition-colors"
-                aria-label="Admin"
-              >
-                <User size={20} />
-              </Link>
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="p-2 text-foreground hover:text-primary transition-colors"
+                  aria-label="Account"
+                >
+                  <User size={20} />
+                </button>
+
+                <AnimatePresence>
+                  {showUserMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50"
+                    >
+                      {user ? (
+                        <>
+                          <Link
+                            to="/dashboard"
+                            className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-accent transition-colors"
+                          >
+                            <User size={16} />
+                            My Account
+                          </Link>
+                          {isAdmin && (
+                            <Link
+                              to="/admin"
+                              className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-accent transition-colors"
+                            >
+                              <User size={16} />
+                              Admin Dashboard
+                            </Link>
+                          )}
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-destructive hover:bg-accent transition-colors text-left"
+                          >
+                            <LogOut size={16} />
+                            Sign Out
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            to="/auth"
+                            className="flex items-center gap-3 px-4 py-3 text-foreground hover:bg-accent transition-colors"
+                          >
+                            <User size={16} />
+                            Sign In
+                          </Link>
+                          <Link
+                            to="/auth"
+                            className="flex items-center gap-3 px-4 py-3 text-primary hover:bg-accent transition-colors"
+                          >
+                            Create Account
+                          </Link>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <button
                 onClick={toggleCart}
@@ -180,17 +247,38 @@ export function Header() {
                   </Link>
                 </motion.div>
               ))}
+              
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
+                className="pt-4 border-t border-border w-48 text-center space-y-4"
               >
-                <Link
-                  to="/admin"
-                  className="text-lg font-display tracking-wide text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Admin Dashboard
-                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className="block text-lg font-display tracking-wide text-foreground hover:text-primary transition-colors"
+                    >
+                      My Account
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="block text-lg font-display tracking-wide text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    to="/auth"
+                    className="block text-lg font-display tracking-wide text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Sign In / Sign Up
+                  </Link>
+                )}
               </motion.div>
             </nav>
           </motion.div>
